@@ -7,7 +7,7 @@ CFLAGS = -m32 -std=gnu99 -ffreestanding -O2 -Wall -Wextra
 SRC_DIR = src
 BUILD_DIR = build
 ISO_DIR = $(BUILD_DIR)/isodir
-ISO = $(BUILD_DIR)/pahalos.iso
+ISO = $(BUILD_DIR)/kernos.iso
 
 .PHONY: all run clean
 
@@ -31,7 +31,7 @@ $(ISO): $(BUILD_DIR)/kernel.bin grub.cfg
 	grub-mkrescue -o $@ $(ISO_DIR)
 
 run: $(ISO)
-	qemu-system-i386 -cdrom $(ISO)
+	qemu-system-i386 -cdrom $(ISO) -device isa-debug-exit,iobase=0xf4,iosize=0x04 || true
 
 clean:
 	rm -rf $(BUILD_DIR)

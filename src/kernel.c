@@ -23,6 +23,11 @@ void clear_screen(void) {
   cursor_row = 0;
   cursor_col = 0;
 }
+// we dont have a sleep(2) thing here. we have to define this too T-T
+void delay(void) {
+  for (volatile unsigned long i = 0; i < 5000000; i++) {
+  }
+}
 
 // tell it how to print a single char., handle new line, backspace and cursor
 // tracking
@@ -96,20 +101,33 @@ char get_char(void) {
 // defining a function similar to scanf()
 void read_input(char *buffer, int max_length) {
   int count = 0;
+
   while (1) {
     char c = get_char();
+
     if (c == '\n') {
       print_char('\n');
       break;
-    } else if (count < max_length - 1) {
+    }
+
+    // handle backspace (fixed the issue where backspace would also clear things
+    // which it shouldnt (it cleared "kernos>"))
+    else if (c == '\b') {
+      if (count > 0) {
+        count--;
+        print_char('\b');
+      }
+    }
+    // normal char
+    else if (count < max_length - 1) {
       buffer[count] = c;
       count++;
-      print_char(c); // show it on screen
+      print_char(c);
     }
   }
-  buffer[count] = '\0'; // end the string
-}
 
+  buffer[count] = '\0';
+}
 // define a function to compare 2 strings
 int string_equals(const char *a, const char *b) {
   int i = 0;
@@ -140,10 +158,29 @@ startshell:
   if (string_equals(cmd, "ver")) {
     printf("KernOS v1.0\n");
     goto startshell;
-  } else {
+  }
+  if (string_equals(cmd, "help")) {
+    printf("clear - clears the screen\n");
+    printf("ver - shows version\n");
+    printf("help - shows this message\n");
+    printf("exit - shuts down the system\n");
+    goto startshell;
+  }
+  if (string_equals(cmd, "exit")) {
+    goto shutdown;
+  }
+
+  else {
     printf("Unknown command. Type 'help' for a list of commands\n");
     goto startshell;
   }
+shutdown:
+  clear_screen();
+  printf("Shutting down KernOS...\n");
+  delay();
+  __asm__ volatile("mov $0x10, %eax\n"
+                   "mov $0xF4, %dx\n"
+                   "out %al, %dx\n");
   // halt loop
   while (1) {
     __asm__ volatile("hlt");
