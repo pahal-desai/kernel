@@ -1,5 +1,5 @@
 # KernOS
-This is an operating system kernel written in C. I'm new to this and learning.
+This is a tiny x86 hobby operating system written in C and Assembly.
 
 ## Features
 * It has runs basic commands like neofetch, ver, clear, help, and an easter egg command.
