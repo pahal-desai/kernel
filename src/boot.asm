@@ -22,6 +22,7 @@ _start:
     cli
     mov esp, stack_top     ; set up C stack pointer
 
+    push ebx
     call kernel_main       ; jump into C kernel
 
 .halt:

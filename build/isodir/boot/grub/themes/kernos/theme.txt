@@ -1,0 +1,38 @@
+title-text: "KernOS!"
+title-font: "DejaVu Sans Regular 16"
+title-color: "#ffffff"
+desktop-image: "background.png"
+desktop-color: "#000000"
+
++ boot_menu {
+    left = 15%
+    top = 25%
+    width = 70%
+    height = 50%
+    
+    item_font = "DejaVu Sans Regular 16"
+    item_color = "#cccccc"
+    selected_item_font = "DejaVu Sans Regular 16"
+    selected_item_color = "#ffffff"
+    item_height = 28
+    item_spacing = 8
+}
+
++ label {
+    id = "__timeout__"
+    left = 15%
+    top = 78%
+    width = 70%
+    height = 20
+    color = "#ffffff"
+    font = "DejaVu Sans Regular 16"
+    text = "Booting automatically in %d seconds..."
+}
+
++ label {
+    left = 15%
+    top = 84%
+    text = "Use the arrow keys to change selection. Press Enter to boot."
+    font = "DejaVu Sans Regular 16"
+    color = "#888888"
+}
