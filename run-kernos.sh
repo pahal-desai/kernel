@@ -12,7 +12,7 @@ ISO="kernos.iso"
 
 log() {
     echo
-    echo "[ $(date '+%H:%M:%S') ] $1"
+    echo "[$(date '+%H:%M:%S')] $1"
 }
 
 success() {
@@ -20,27 +20,24 @@ success() {
 }
 
 error() {
-    echo
     echo "[✗] $1" >&2
     exit 1
 }
 
-trap 'status=$?; echo; echo "[✗] Command failed on line $LINENO (exit code $status)." >&2; exit "$status"' ERR
+trap 'status=$?; echo "[✗] Failed at line $LINENO (exit code $status)." >&2; exit "$status"' ERR
 
 # ==============================
 # Welcome
 # ==============================
 
-clear 2>/dev/null || true
-
 echo "========================================"
 echo "          KernOS Auto Launcher"
 echo "========================================"
-echo "          Made by Pahal Desai"
+echo "             Made by Pahal"
 echo "========================================"
 
 # ==============================
-# Detect Linux distribution
+# Detect OS
 # ==============================
 
 log "Detecting Linux distribution..."
@@ -61,14 +58,13 @@ if [ "$EUID" -eq 0 ]; then
 else
     command -v sudo >/dev/null 2>&1 || error "sudo is required."
     SUDO="sudo"
-    log "Administrator privileges will be requested when needed."
 fi
 
 # ==============================
 # Install dependencies
 # ==============================
 
-log "Installing required dependencies..."
+log "Installing dependencies..."
 
 case "$ID" in
 
@@ -80,7 +76,7 @@ case "$ID" in
 
     arch|endeavouros|manjaro)
         log "Using Pacman..."
-        $SUDO pacman -Syu --noconfirm --needed qemu-system-i386 curl python
+        $SUDO pacman -Sy --needed --noconfirm qemu-system-x86 curl python
         ;;
 
     fedora)
@@ -89,7 +85,7 @@ case "$ID" in
         ;;
 
     *)
-        error "Unsupported Linux distribution: $ID"
+        error "Unsupported distribution: $ID"
         ;;
 
 esac
@@ -100,10 +96,10 @@ success "Dependencies installed."
 # Verify QEMU
 # ==============================
 
-log "Checking QEMU installation..."
+log "Verifying QEMU..."
 
 command -v qemu-system-i386 >/dev/null 2>&1 ||
-    error "QEMU installation failed."
+    error "QEMU executable qemu-system-i386 not found."
 
 success "QEMU is ready."
 
@@ -111,13 +107,12 @@ success "QEMU is ready."
 # Fetch latest release
 # ==============================
 
-log "Connecting to GitHub..."
+log "Fetching latest KernOS release..."
 
-RELEASE_URL="https://api.github.com/repos/$REPO/releases/latest"
-
-ISO_URL=$(curl -fsSL "$RELEASE_URL" | python3 -c '
-import json
-import sys
+ISO_URL=$(curl -fsSL \
+    "https://api.github.com/repos/$REPO/releases/latest" |
+    python3 -c '
+import json, sys
 
 release = json.load(sys.stdin)
 
@@ -127,27 +122,27 @@ for asset in release.get("assets", []):
         break
 ')
 
-[ -n "$ISO_URL" ] || error "Could not find kernos.iso in the latest release."
+[ -n "$ISO_URL" ] || error "KernOS ISO not found in GitHub releases."
 
-success "Latest KernOS release found."
+success "Release found."
 
 # ==============================
 # Download ISO
 # ==============================
 
-log "Downloading KernOS ISO..."
+log "Downloading KernOS..."
 
 curl -fL --progress-bar "$ISO_URL" -o "$ISO"
 
 [ -s "$ISO" ] || error "Downloaded ISO is empty."
 
-success "KernOS downloaded successfully."
+success "Download complete."
 
 # ==============================
-# Launch KernOS
+# Launch
 # ==============================
 
-log "Launching QEMU..."
+log "Launching KernOS..."
 
 echo
 echo "========================================"
@@ -159,7 +154,6 @@ qemu-system-i386 \
     -cdrom "$ISO" \
     -device isa-debug-exit,iobase=0xf4,iosize=0x04
 
-echo
 success "KernOS has exited."
 echo "Thanks for trying KernOS!"
 ```
