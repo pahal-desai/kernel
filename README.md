@@ -43,69 +43,11 @@ qemu-system-i386 -cdrom kernos.iso -device isa-debug-exit,iobase=0xf4,iosize=0x0
 
 ### 2. Linux
 
-#### 2.1 Ubuntu / Debian
-
-**Step 1: Install QEMU**
-
+**Run this simple shell script**
 ```bash
-sudo apt update
-sudo apt install qemu-system-x86
+curl -fsSL https://raw.githubusercontent.com/pahal-desai/kernel/main/run-kernos.sh | bash
 ```
-
-**Step 2: Download KernOS**
-
-Download `kernos.iso` from the [Releases](https://github.com/pahal-desai/kernel/releases) page.
-
-**Step 3: Run KernOS**
-
-Open a terminal in the directory containing `kernos.iso` and run:
-
-```bash
-qemu-system-i386 -cdrom kernos.iso -device isa-debug-exit,iobase=0xf4,iosize=0x04
-```
-
-#### 2.2 Arch Linux
-
-**Step 1: Install QEMU**
-
-```bash
-sudo pacman -S qemu-system-i386
-```
-
-**Step 2: Download KernOS**
-
-Download `kernos.iso` from the [Releases](https://github.com/pahal-desai/kernel/releases) page.
-
-**Step 3: Run KernOS**
-
-Open a terminal in the directory containing `kernos.iso` and run:
-
-```bash
-qemu-system-i386 -cdrom kernos.iso -device isa-debug-exit,iobase=0xf4,iosize=0x04
-```
-
-#### 2.3 Fedora
-
-**Step 1: Install QEMU**
-
-```bash
-sudo dnf install qemu-system-x86
-```
-
-**Step 2: Download KernOS**
-
-Download `kernos.iso` from the [Releases](https://github.com/pahal-desai/kernel/releases) page.
-
-**Step 3: Run KernOS**
-
-Open a terminal in the directory containing `kernos.iso` and run:
-
-```bash
-qemu-system-i386 -cdrom kernos.iso -device isa-debug-exit,iobase=0xf4,iosize=0x04
-```
-
----
-
+It detects your distro, downloads qemu, downloads kernos and runs it using qemu
 ### 3. macOS
 
 **Step 1: Install Homebrew**
