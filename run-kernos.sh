@@ -1,66 +1,89 @@
 ```bash
 #!/usr/bin/env bash
 
-set -e
+set -Ee
 
 REPO="pahal-desai/kernel"
-ISO="KernOS.iso"
+ISO="kernos.iso"
 
-echo "================================"
-echo "       KernOS Launcher"
-echo "================================"
+# Logging
+log() {
+    echo -e "\n[ $(date '+%H:%M:%S') ] $1"
+}
 
-# Detect Linux distribution
-if [ -f /etc/os-release ]; then
-    . /etc/os-release
-else
-    echo "Cannot detect your Linux distribution."
+success() {
+    echo "[✓] $1"
+}
+
+error() {
+    echo "[✗] $1" >&2
     exit 1
-fi
+}
 
-# Check privileges
+trap 'error "Something went wrong on line $LINENO. Check the output above."' ERR
+
+echo "========================================"
+echo "          KernOS Auto Launcher"
+echo "========================================"
+
+# Detect OS
+log "Detecting Linux distribution..."
+
+[ -f /etc/os-release ] || error "Cannot detect Linux distribution."
+
+source /etc/os-release
+
+success "Detected: $PRETTY_NAME"
+
+# Sudo setup
 if [ "$EUID" -eq 0 ]; then
     SUDO=""
 else
+    command -v sudo >/dev/null 2>&1 || error "sudo is required."
     SUDO="sudo"
 fi
 
-echo "[1/4] Detected OS: $PRETTY_NAME"
-
 # Install dependencies
-echo "[2/4] Installing dependencies..."
+log "Installing required dependencies..."
 
 case "$ID" in
     ubuntu|debian|linuxmint|pop)
+        log "Using APT package manager..."
         $SUDO apt update
         $SUDO apt install -y qemu-system-x86 curl python3
         ;;
 
     arch|endeavouros|manjaro)
+        log "Using Pacman package manager..."
         $SUDO pacman -Sy --needed qemu-system-x86 curl python
         ;;
 
     fedora)
+        log "Using DNF package manager..."
         $SUDO dnf install -y qemu-system-x86 curl python3
         ;;
 
     *)
-        echo "Unsupported Linux distribution: $ID"
-        exit 1
+        error "Unsupported distribution: $ID"
         ;;
 esac
 
+success "Dependencies installed."
+
 # Verify QEMU
-if ! command -v qemu-system-i386 >/dev/null 2>&1; then
-    echo "QEMU installation failed!"
-    exit 1
-fi
+log "Checking QEMU installation..."
 
-# Fetch latest release ISO URL
-echo "[3/4] Fetching latest KernOS release..."
+command -v qemu-system-i386 >/dev/null 2>&1 ||
+    error "QEMU installation failed."
 
-ISO_URL=$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" |
-python3 -c '
+success "QEMU is ready."
+
+# Fetch release
+log "Fetching the latest KernOS release from GitHub..."
+
+ISO_URL=$(curl -fsSL \
+    "https://api.github.com/repos/$REPO/releases/latest" |
+    python3 -c '
 import json, sys
 
 release = json.load(sys.stdin)
@@ -71,20 +94,28 @@ for asset in release.get("assets", []):
         break
 ')
 
-if [ -z "$ISO_URL" ]; then
-    echo "Could not find KernOS.iso in the latest release."
-    exit 1
-fi
+[ -n "$ISO_URL" ] || error "Could not find kernos.iso in the latest release."
 
-# Download ISO
-echo "Downloading KernOS..."
-curl -fL "$ISO_URL" -o "$ISO"
+success "Found KernOS ISO."
 
-echo "[4/4] Launching KernOS..."
+# Download
+log "Downloading KernOS..."
+
+curl -fL --progress-bar "$ISO_URL" -o "$ISO"
+
+success "KernOS downloaded successfully."
+
+# Launch
+log "Starting KernOS in QEMU..."
+
+echo "========================================"
+echo "             Booting KernOS"
+echo "========================================"
 
 qemu-system-i386 \
     -cdrom "$ISO" \
     -device isa-debug-exit,iobase=0xf4,iosize=0x04
 
-echo "KernOS has exited."
+log "KernOS has exited."
+success "Thanks for trying KernOS!"
 ```
