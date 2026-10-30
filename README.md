@@ -15,49 +15,121 @@ And i was heavily inspired by the story of temple os.
 * create/delete/edit files
 * run a video game (doom to be precise :D)
 
-## How to test?
+## How to run?
 
-Download `kernos.iso` from the [Releases](https://github.com/pahal-desai/kernel/releases) page and run it using QEMU!
+### 1. Windows
 
-### 1. Install QEMU
+**Step 1: Install QEMU**
 
-#### Linux (Debian / Ubuntu)
-```bash
-sudo apt install qemu-system-x86
-```
+Open PowerShell and run:
 
-#### Windows
-Install using [winget](https://github.com/microsoft/winget-cli):
 ```powershell
 winget install QEMU
 ```
 
-#### macOS
-Install using [Homebrew](https://brew.sh/):
+**Step 2: Download KernOS**
+
+Download `kernos.iso` from the [Releases](https://github.com/pahal-desai/kernel/releases) page.
+
+**Step 3: Run KernOS**
+
+Open PowerShell in the directory containing `kernos.iso` and run:
+
+```powershell
+qemu-system-i386 -cdrom kernos.iso -device isa-debug-exit,iobase=0xf4,iosize=0x04
+```
+
+---
+
+### 2. Linux
+
+#### 2.1 Ubuntu / Debian
+
+**Step 1: Install QEMU**
+
+```bash
+sudo apt update
+sudo apt install qemu-system-x86
+```
+
+**Step 2: Download KernOS**
+
+Download `kernos.iso` from the [Releases](https://github.com/pahal-desai/kernel/releases) page.
+
+**Step 3: Run KernOS**
+
+Open a terminal in the directory containing `kernos.iso` and run:
+
+```bash
+qemu-system-i386 -cdrom kernos.iso -device isa-debug-exit,iobase=0xf4,iosize=0x04
+```
+
+#### 2.2 Arch Linux
+
+**Step 1: Install QEMU**
+
+```bash
+sudo pacman -S qemu-system-i386
+```
+
+**Step 2: Download KernOS**
+
+Download `kernos.iso` from the [Releases](https://github.com/pahal-desai/kernel/releases) page.
+
+**Step 3: Run KernOS**
+
+Open a terminal in the directory containing `kernos.iso` and run:
+
+```bash
+qemu-system-i386 -cdrom kernos.iso -device isa-debug-exit,iobase=0xf4,iosize=0x04
+```
+
+#### 2.3 Fedora
+
+**Step 1: Install QEMU**
+
+```bash
+sudo dnf install qemu-system-x86
+```
+
+**Step 2: Download KernOS**
+
+Download `kernos.iso` from the [Releases](https://github.com/pahal-desai/kernel/releases) page.
+
+**Step 3: Run KernOS**
+
+Open a terminal in the directory containing `kernos.iso` and run:
+
+```bash
+qemu-system-i386 -cdrom kernos.iso -device isa-debug-exit,iobase=0xf4,iosize=0x04
+```
+
+---
+
+### 3. macOS
+
+**Step 1: Install Homebrew**
+
+If you don't have Homebrew installed, follow the instructions at [brew.sh](https://brew.sh/).
+
+**Step 2: Install QEMU**
+
+Open Terminal and run:
+
 ```bash
 brew install qemu
 ```
 
-### 2. Run the ISO
+**Step 3: Download KernOS**
 
-Open your terminal in the directory where you downloaded `kernos.iso`:
+Download `kernos.iso` from the [Releases](https://github.com/pahal-desai/kernel/releases) page.
 
-* **Linux / macOS:**
-  ```bash
-  qemu-system-i386 -cdrom kernos.iso -device isa-debug-exit,iobase=0xf4,iosize=0x04
-  ```
+**Step 4: Run KernOS**
 
-* **Windows (PowerShell / Command Prompt):**
-  ```powershell
-  qemu-system-i386 -cdrom kernos.iso -device isa-debug-exit,iobase=0xf4,iosize=0x04
-  ```
+Open a terminal in the directory containing `kernos.iso` and run:
 
----
-
-*(Optional) To build from source on Linux:*
 ```bash
-sudo apt install build-essential nasm grub2-common grub-pc-bin xorriso mtools
-make clean && make run
+qemu-system-i386 -cdrom kernos.iso -device isa-debug-exit,iobase=0xf4,iosize=0x04
 ```
 
 
