@@ -1,4 +1,3 @@
-```bash
 #!/usr/bin/env bash
 
 set -Ee
@@ -6,29 +5,41 @@ set -Ee
 REPO="pahal-desai/kernel"
 ISO="kernos.iso"
 
-# ==============================
+# =====================================
 # Logging
-# ==============================
+# =====================================
 
 log() {
     echo
-    echo "[$(date '+%H:%M:%S')] $1"
+    echo -e "\033[1;36m[INFO]\033[0m $(date '+%H:%M:%S') $*"
 }
 
 success() {
-    echo "[✓] $1"
+    echo -e "\033[1;32m[ OK ]\033[0m $*"
+}
+
+warning() {
+    echo -e "\033[1;33m[WARN]\033[0m $*"
 }
 
 error() {
-    echo "[✗] $1" >&2
-    exit 1
+    echo -e "\033[1;31m[FAIL]\033[0m $*" >&2
 }
 
-trap 'status=$?; echo "[✗] Failed at line $LINENO (exit code $status)." >&2; exit "$status"' ERR
+run() {
+    echo -e "\033[1;35m[EXEC]\033[0m $*"
+    "$@"
+}
 
-# ==============================
+# =====================================
+# Error handling
+# =====================================
+
+trap 'status=$?; error "Command failed: $BASH_COMMAND"; error "Line: $LINENO | Exit code: $status"; exit "$status"' ERR
+
+# =====================================
 # Welcome
-# ==============================
+# =====================================
 
 echo "========================================"
 echo "          KernOS Auto Launcher"
@@ -36,124 +47,163 @@ echo "========================================"
 echo "             Made by Pahal"
 echo "========================================"
 
-# ==============================
-# Detect OS
-# ==============================
+log "Starting KernOS installation and launch process."
 
-log "Detecting Linux distribution..."
+# =====================================
+# OS Detection
+# =====================================
 
-[ -f /etc/os-release ] || error "Cannot detect Linux distribution."
+log "Checking Linux distribution..."
+
+if [[ ! -f /etc/os-release ]]; then
+    error "Cannot find /etc/os-release."
+    exit 1
+fi
 
 source /etc/os-release
 
-success "Detected: $PRETTY_NAME"
+success "Operating system: $PRETTY_NAME"
+log "Distribution ID: $ID"
 
-# ==============================
+# =====================================
 # Privileges
-# ==============================
+# =====================================
 
-if [ "$EUID" -eq 0 ]; then
+if [[ $EUID -eq 0 ]]; then
     SUDO=""
-    success "Running as root."
+    success "Running with root privileges."
 else
-    command -v sudo >/dev/null 2>&1 || error "sudo is required."
+    if ! command -v sudo >/dev/null 2>&1; then
+        error "sudo is not installed."
+        exit 1
+    fi
+
     SUDO="sudo"
+    log "Administrator privileges will be requested."
 fi
 
-# ==============================
-# Install dependencies
-# ==============================
+# =====================================
+# Dependency Installation
+# =====================================
 
-log "Installing dependencies..."
+log "Checking and installing dependencies..."
 
 case "$ID" in
 
     ubuntu|debian|linuxmint|pop)
-        log "Using APT..."
-        $SUDO apt-get update
-        $SUDO apt-get install -y qemu-system-x86 curl python3
+        log "Package manager: APT"
+        run $SUDO apt-get update
+        run $SUDO apt-get install -y qemu-system-x86 curl python3
         ;;
 
     arch|endeavouros|manjaro)
-        log "Using Pacman..."
-        $SUDO pacman -Sy --needed --noconfirm qemu-system-x86 curl python
+        log "Package manager: Pacman"
+        run $SUDO pacman -Sy --needed --noconfirm qemu-system-x86 curl python
         ;;
 
     fedora)
-        log "Using DNF..."
-        $SUDO dnf install -y qemu-system-x86 curl python3
+        log "Package manager: DNF"
+        run $SUDO dnf install -y qemu-system-x86 curl python3
         ;;
 
     *)
         error "Unsupported distribution: $ID"
+        exit 1
         ;;
 
 esac
 
-success "Dependencies installed."
+success "Dependency installation completed."
 
-# ==============================
-# Verify QEMU
-# ==============================
+# =====================================
+# Verify Dependencies
+# =====================================
 
-log "Verifying QEMU..."
+log "Verifying installed dependencies..."
 
-command -v qemu-system-i386 >/dev/null 2>&1 ||
-    error "QEMU executable qemu-system-i386 not found."
+for cmd in curl python3 qemu-system-i386; do
+    if command -v "$cmd" >/dev/null 2>&1; then
+        success "$cmd found: $(command -v "$cmd")"
+    else
+        error "$cmd is missing."
+        exit 1
+    fi
+done
 
-success "QEMU is ready."
+# =====================================
+# GitHub Release Detection
+# =====================================
 
-# ==============================
-# Fetch latest release
-# ==============================
+log "Connecting to GitHub API..."
 
-log "Fetching latest KernOS release..."
+API_URL="https://api.github.com/repos/$REPO/releases/latest"
 
-ISO_URL=$(curl -fsSL \
-    "https://api.github.com/repos/$REPO/releases/latest" |
-    python3 -c '
+log "Fetching latest release information..."
+
+RELEASE_JSON=$(curl -fsSL "$API_URL")
+
+success "GitHub API response received."
+
+log "Searching for kernos.iso..."
+
+ISO_URL=$(printf '%s' "$RELEASE_JSON" | python3 -c '
 import json, sys
 
 release = json.load(sys.stdin)
 
+print("Release:", release.get("tag_name", "unknown"), file=sys.stderr)
+
 for asset in release.get("assets", []):
+    print("Found asset:", asset["name"], file=sys.stderr)
     if asset["name"].lower() == "kernos.iso":
         print(asset["browser_download_url"])
         break
 ')
 
-[ -n "$ISO_URL" ] || error "KernOS ISO not found in GitHub releases."
+if [[ -z "$ISO_URL" ]]; then
+    error "kernos.iso was not found in the latest release."
+    exit 1
+fi
 
-success "Release found."
+success "ISO download URL found."
 
-# ==============================
+# =====================================
 # Download ISO
-# ==============================
+# =====================================
 
-log "Downloading KernOS..."
+log "Downloading KernOS ISO..."
+log "Destination: $(pwd)/$ISO"
 
-curl -fL --progress-bar "$ISO_URL" -o "$ISO"
+run curl -fL --progress-bar "$ISO_URL" -o "$ISO"
 
-[ -s "$ISO" ] || error "Downloaded ISO is empty."
+if [[ ! -s "$ISO" ]]; then
+    error "Downloaded ISO is missing or empty."
+    exit 1
+fi
 
-success "Download complete."
+success "ISO downloaded successfully."
+log "File size: $(du -h "$ISO" | cut -f1)"
 
-# ==============================
-# Launch
-# ==============================
+# =====================================
+# Launch KernOS
+# =====================================
+
+log "Preparing QEMU..."
+
+QEMU_CMD=$(command -v qemu-system-i386)
+
+success "QEMU executable: $QEMU_CMD"
 
 log "Launching KernOS..."
-
 echo
 echo "========================================"
 echo "              KernOS Boot"
 echo "========================================"
 echo
 
-qemu-system-i386 \
+"$QEMU_CMD" \
     -cdrom "$ISO" \
     -device isa-debug-exit,iobase=0xf4,iosize=0x04
 
 success "KernOS has exited."
-echo "Thanks for trying KernOS!"
-```
+log "Thank you for trying KernOS!"
